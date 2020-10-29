@@ -46,20 +46,22 @@ void process(int pd[]){
     close(pd[1]);
     len = read(pd[0], &p, sizeof(p));
     printf("prime %d\n", p);  
-
+    
     while(len != 0) {
         len = read(pd[0], &n, sizeof(n));
         if(n % p != 0){
             *(infos + infos_i) = n;
             infos_i++;
         }
+        
     }
 
     close(pd[0]);
-
-    if(infos_i == 0){
+    
+    if(infos_i == 0) {
         exit();
     }
+    
 
     // Child Process
     if((pid = fork()) == 0){
