@@ -1,3 +1,20 @@
+Student 
+
+Deadpool
+
+Idea
+
+first, I take a quik look on sh.c, then I noticed that it not to
+use malloc, so I do with an array, and I allocate cmd tree in that
+array dynamically.
+
+Important
+
+1. remember first parse "Pipe  |", then "Redir >/<", at last common exec cmd
+2. remember to add "if buf[0] == 0 then exit(0)" in your infinite main loop
+
+Content:
+
 xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
 Version 6 (v6).  xv6 loosely follows the structure and style of v6,
 but is implemented for a modern RISC-V multiprocessor using ANSI C.
