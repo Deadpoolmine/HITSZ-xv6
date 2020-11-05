@@ -73,6 +73,7 @@ runcmd(struct cmd *cmd)
 
   case EXEC:
     ecmd = (struct execcmd*)cmd;
+    //fprintf(2, "exec exec, cmd: %s\n", ecmd->argv[0]);  
     if(ecmd->argv[0] == 0)
       exit(-1);
     exec(ecmd->argv[0], ecmd->argv);
@@ -81,6 +82,7 @@ runcmd(struct cmd *cmd)
 
   case REDIR:
     rcmd = (struct redircmd*)cmd;
+    //fprintf(2, "exec redir ,file:%s\n", rcmd->file);
     close(rcmd->fd);
     if(open(rcmd->file, rcmd->mode) < 0){
       fprintf(2, "open %s failed\n", rcmd->file);
@@ -99,6 +101,7 @@ runcmd(struct cmd *cmd)
 
   case PIPE:
     pcmd = (struct pipecmd*)cmd;
+    //fprintf(2, "exec pipe\n");  
     if(pipe(p) < 0)
       panic("pipe");
     if(fork1() == 0){

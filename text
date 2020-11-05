@@ -1,0 +1,118 @@
+def test(points, title=None, parent=None):
+    def register_test(fn, title=title):
+        def run_test():
+def end_part(name):
+    def show_part():
+def run_tests():
+                      default="auto", help="never, always, or auto")
+def get_current_test():
+def assert_equal(got, expect, msg=""):
+def assert_lines_match(text, *regexps, **kw):
+    def assert_lines_match_kw(no=[]):
+def pre_make():
+def post_make():
+def make(*target):
+def show_command(cmd):
+def maybe_unlink(*paths):
+COLORS = {"default": "\033[0m", "red": "\033[31m", "green": "\033[32m"}
+def color(name, text):
+        return COLORS[name] + text + COLORS["default"]
+def reset_fs():
+def random_str(n=8):
+    def __init__(self, *make_args):
+    def get_gdb_port():
+    def fileno(self):
+    def handle_read(self):
+    def write(self, buf):
+    def wait(self):
+    def kill(self):
+    def __init__(self, port, timeout=15):
+    def fileno(self):
+    def handle_read(self):
+    def __send(self, cmd):
+    def __send_break(self):
+    def close(self):
+    def cont(self):
+    def breakpoint(self, addr):
+    def __init__(self, *default_monitors):
+        self.__default_monitors = default_monitors
+    def run_qemu(self, *monitors, **kw):
+        def run_qemu_kw(target_base="qemu", make_args=[], timeout=30):
+            for m in self.__default_monitors + monitors:
+    def __monitor_start(self, output):
+    def __react(self, reactors, timeout):
+    def user_test(self, binary, *monitors, **kw):
+            kw.setdefault("make_args", []).append("QEMUEXTRA+=-snapshot")
+    def match(self, *args, **kwargs):
+def save(path):
+    def setup_save(runner):
+    def save_on_finish(fail):
+def stop_breakpoint(addr):
+    def setup_breakpoint(runner):
+def call_on_line(regexp, callback):
+    def setup_call_on_line(runner):
+        def handle_output(output):
+def stop_on_line(regexp):
+    def stop(line):
+def shell_script(script, terminate_match=None):
+    def setup_call_on_line(runner):
+        def handle_output(output):
+def test(points, title=None, parent=None):
+    def register_test(fn, title=title):
+        def run_test():
+def end_part(name):
+    def show_part():
+def run_tests():
+                      default="auto", help="never, always, or auto")
+def get_current_test():
+def assert_equal(got, expect, msg=""):
+def assert_lines_match(text, *regexps, **kw):
+    def assert_lines_match_kw(no=[]):
+def pre_make():
+def post_make():
+def make(*target):
+def show_command(cmd):
+def maybe_unlink(*paths):
+COLORS = {"default": "\033[0m", "red": "\033[31m", "green": "\033[32m"}
+def color(name, text):
+        return COLORS[name] + text + COLORS["default"]
+def reset_fs():
+def random_str(n=8):
+    def __init__(self, *make_args):
+    def get_gdb_port():
+    def fileno(self):
+    def handle_read(self):
+    def write(self, buf):
+    def wait(self):
+    def kill(self):
+    def __init__(self, port, timeout=15):
+    def fileno(self):
+    def handle_read(self):
+    def __send(self, cmd):
+    def __send_break(self):
+    def close(self):
+    def cont(self):
+    def breakpoint(self, addr):
+    def __init__(self, *default_monitors):
+        self.__default_monitors = default_monitors
+    def run_qemu(self, *monitors, **kw):
+        def run_qemu_kw(target_base="qemu", make_args=[], timeout=30):
+            for m in self.__default_monitors + monitors:
+    def __monitor_start(self, output):
+    def __react(self, reactors, timeout):
+    def user_test(self, binary, *monitors, **kw):
+            kw.setdefault("make_args", []).append("QEMUEXTRA+=-snapshot")
+    def match(self, *args, **kwargs):
+def save(path):
+    def setup_save(runner):
+    def save_on_finish(fail):
+def stop_breakpoint(addr):
+    def setup_breakpoint(runner):
+def call_on_line(regexp, callback):
+    def setup_call_on_line(runner):
+        def handle_output(output):
+def stop_on_line(regexp):
+    def stop(line):
+def shell_script(script, terminate_match=None):
+    def setup_call_on_line(runner):
+        def handle_output(output):
