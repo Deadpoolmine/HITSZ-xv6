@@ -143,6 +143,7 @@ evaluate(cmd *parsedcmd){
     pipe(pd);
     /* stdout */
     /* 左边命令的输出将会定位到标准输出内 */
+    /* Child */
     if(fork() == 0){
       close(1);
       dup(pd[1]);
@@ -153,17 +154,14 @@ evaluate(cmd *parsedcmd){
     }
     /* stdin */
     /* 右边命令的输入将被重定向到标准输入内 */
-    if(fork() == 0){
+    /* Parent */
+    else {
       close(0);
       dup(pd[0]);
       close(pd[0]);
       close(pd[1]);
-      //fprintf(2,"arrived at right \n");
       evaluate(parsedcmd->cmdcontent.pipecmd.rightcmd);
     }
-    close(pd[0]);
-    close(pd[1]);
-    wait(0);
     wait(0);
     /* stdin */
     break;
