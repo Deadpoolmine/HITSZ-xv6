@@ -333,8 +333,27 @@ sfence_vma()
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4) // 1 -> user can access
 
+
+/**
+ * pa: RE PNN  Offset
+ * pa: 8   44    12 
+ */
+
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
+
+/**
+ * va: RE L2 L1 L0 Offset
+ * va: 25  9  9  9   12 
+ */
+
+/**
+ * pagetable
+ *  512 = 2^9
+ * 
+ * pte: RE  PNN  Offset
+ * pte: 10   44    10 
+ */
 
 #define PTE2PA(pte) (((pte) >> 10) << 12)
 

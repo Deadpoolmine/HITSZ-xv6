@@ -93,6 +93,12 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
+      /**
+       * 4096 / 64 = 2^12 / 2^3 = 2*9 
+       * -> 
+       * 一个table有512行，这里新建了一张表  
+       */
+      //printf("size pde_t : %d(8)\n", sizeof(pde_t*));
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
@@ -102,7 +108,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
   return &pagetable[PX(0, va)];
 }
 /** 
- * 1.寻找虚拟地址va对应的物理地址pa
+ * 1.寻找虚拟地址va对应的页面的起始物理地址pa，即 PNN 0000 0000 0000
  * 2.如果没有找到，则返回0
  */
 // Look up a virtual address, return the physical address,
@@ -112,12 +118,18 @@ uint64
 walkaddr(pagetable_t pagetable, uint64 va)
 {
   pte_t *pte;
+  //pte_t *pte_test;
   uint64 pa;
 
   if(va >= MAXVA)
     return 0;
 
   pte = walk(pagetable, va, 0);
+  /* 
+  pte_test = walk(pagetable, va+1, 0);
+  printf("pte:%p\n", PTE2PA(*pte));
+  printf("pte_test:%p\n", PTE2PA(*pte_test)); 
+  */
   if(pte == 0)
     return 0;
   if((*pte & PTE_V) == 0)
@@ -182,13 +194,20 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   a = PGROUNDDOWN(va);
   last = PGROUNDDOWN(va + size - 1);
   for(;;){
+    /**
+     * 如果没有pagetable，则先创建一个pagetable，
+     * 然后获取一个pte；这个pte如果是空的，则设置该pte值
+     */
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
     if(*pte & PTE_V)
       panic("remap");
-    *pte = PA2PTE(pa) | perm | PTE_V;
+    *pte = PA2PTE(pa) | perm | PTE_V; //pte相当于页码，pa相当于内容
     if(a == last)
       break;
+    /**
+     * 下一页
+     * */
     a += PGSIZE;
     pa += PGSIZE;
   }
@@ -352,7 +371,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 
   for(i = 0; i < sz; i += PGSIZE){
     /**
-     * 父进程中有些项并未映射，直接跳过
+     * 父进程中的page table中有些项并未映射，直接跳过
      */
     if((pte = walk(old, i, 0)) == 0){
       continue;
@@ -419,7 +438,7 @@ lazyalloc(pagetable_t pagetable, uint64 va){
   if(mem != 0){
     memset(mem, 0, PGSIZE);
     if(mappages(pagetable, va, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
-      printf("Cannot allocate so much memory");
+      printf("There is no page mapped");
       kfree(mem);
       uvmdealloc(pagetable, va, myproc()->sz);
       return -1;
@@ -429,7 +448,7 @@ lazyalloc(pagetable_t pagetable, uint64 va){
     /**
      * Handle the kalloc is invalid
      */
-    printf("Mem is 0 \n");
+    printf("Mem is not enough \n");
     return -1;
   }
   return 1;
@@ -440,6 +459,7 @@ lazyalloc(pagetable_t pagetable, uint64 va){
 int
 copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 {
+  //copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)
   uint64 n, va0, pa0;
 
   while(len > 0){
@@ -463,10 +483,11 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     if(pa0 == 0){
       return -1;
     }
-    n = PGSIZE - (dstva - va0);
+    uint64 offset = (dstva - va0)
+    n = PGSIZE - offset;
     if(n > len)
       n = len;
-    memmove((void *)(pa0 + (dstva - va0)), src, n);
+    memmove((void *)(pa0 + offset), src, n);
 
     len -= n;
     src += n;
