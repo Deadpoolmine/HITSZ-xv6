@@ -20,7 +20,10 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
-
+  
+  /* printf("exec:()\n");
+  vmprint(p->pagetable, 1); */
+  
   begin_op(ROOTDEV);
 
   if((ip = namei(path)) == 0){
@@ -65,13 +68,26 @@ exec(char *path, char **argv)
 
   // Allocate two pages at the next page boundary.
   // Use the second as the user stack.
+  /**
+   * ---------- <-sp
+   * user satck
+   * ---------- <-stackbase
+   * gaurded page
+   * ---------- 
+   */
   sz = PGROUNDUP(sz);
   if((sz = uvmalloc(pagetable, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
   uvmclear(pagetable, sz-2*PGSIZE);
   sp = sz;
   stackbase = sp - PGSIZE;
-
+  /**
+   * 记录userstack的起始位置
+   */
+  p->userstack = stackbase;
+  //printf("exec:stackbase:%p\n", stackbase);
+ 
+  
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
@@ -86,6 +102,15 @@ exec(char *path, char **argv)
   }
   ustack[argc] = 0;
 
+  /**
+   * Lazy alloc implementation
+   */
+  //vmprint(pagetable);
+  if (p->pid == 1)
+  {
+    vmprint(pagetable, 1);
+  } 
+  
   // push the array of argv[] pointers.
   sp -= (argc+1) * sizeof(uint64);
   sp -= sp % 16;
@@ -111,6 +136,7 @@ exec(char *path, char **argv)
   p->sz = sz;
   p->tf->epc = elf.entry;  // initial program counter = main
   p->tf->sp = sp; // initial stack pointer
+  
   proc_freepagetable(oldpagetable, oldsz);
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 

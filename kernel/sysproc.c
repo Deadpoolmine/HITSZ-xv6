@@ -43,12 +43,24 @@ sys_sbrk(void)
 {
   int addr;
   int n;
-
+  
   if(argint(0, &n) < 0)
     return -1;
   addr = myproc()->sz;
-  if(growproc(n) < 0)
-    return -1;
+  /* printf("old_addr: %d\n", addr); */
+  myproc()->sz += n;
+  /* printf("%d\n",myproc()->sz); */
+  /* if(growproc(n) < 0)
+    return -1; */
+  /**
+   * 
+   * Handle negtive sbrk
+   */
+  if(n < 0){
+    printf("n:%d\n",n);
+    printf("oldsz:%d, newsz:%d\n ", addr, addr + n);
+    uvmdealloc(myproc()->pagetable, addr, addr + n);
+  }
   return addr;
 }
 

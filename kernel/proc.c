@@ -250,6 +250,9 @@ fork(void)
   struct proc *np;
   struct proc *p = myproc();
 
+  /* printf("fork():\n");
+  vmprint(p->pagetable, 1); */
+  //printf("fork:basestack %p \n", p->userstack);
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
@@ -261,8 +264,13 @@ fork(void)
     release(&np->lock);
     return -1;
   }
-  np->sz = p->sz;
+  /**
+   * 应该复制Userstack，维护一下
+   */
+  np->userstack = p->userstack;
 
+  np->sz = p->sz;
+  
   np->parent = p;
 
   // copy saved user registers.
@@ -270,7 +278,7 @@ fork(void)
 
   // Cause fork to return 0 in the child.
   np->tf->a0 = 0;
-
+  
   // increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])

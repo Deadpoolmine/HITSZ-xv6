@@ -29,6 +29,7 @@ trapinithart(void)
   w_stvec((uint64)kernelvec);
 }
 
+
 //
 // handle an interrupt, exception, or system call from user space.
 // called from trampoline.S
@@ -50,6 +51,7 @@ usertrap(void)
   // save user program counter.
   p->tf->epc = r_sepc();
   
+  
   if(r_scause() == 8){
     // system call
 
@@ -67,15 +69,80 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } 
+  /**
+   * Page Fault
+   */
+  else if (r_scause() == 13 || r_scause() == 15)
+  {
+    //**********************************Handle negative sbrk() arguments.
+    //**********************************Kill a process if it page-faults on a virtual memory address higher than any allocated with sbrk().
+    //Handle fork() correctly.
+    //Handle the case in which a process passes a valid address from sbrk() to a system call such as read or write, but the memory for that address has not yet been allocated.
+    //**********************************Handle out-of-memory correctly: if kalloc() fails in the page fault handler, kill the current process.
+    //Handle faults on the invalid page below the stack.
+
+    /* printf("****************************page fault!****************************\n");
+    printf("-------------------------before page table:\n");
+    vmprint(p->pagetable, 1);
+    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+     */
+    //char *mem;
+    uint64 va;
+    
+    va = r_stval();
+    /* printf("size alloc:%d\n", p->sz);
+    printf("va:%d\n", va); */
+    /* printf("va: %p\n", va);
+    printf("trap: stackbase:%p \n", p->userstack);
+    printf("trap: stackbase2:%p \n", p->tf->sp);  */
+    if(va >= p->sz)
+    {
+      /* 虚拟地址大于分配的地址 */
+      printf("Virtual Address is greater than sbrk(n) \n");
+      p->killed = 1;
+    }
+    else if (va < p->userstack)
+    {
+      printf("Guard page!");
+      p->killed = 1;
+    }
+    else {
+      /* 其他情况， */
+      uint64 va_boundry = PGROUNDDOWN(va);
+      /* mem = kalloc();
+      if(mem != 0){
+        memset(mem, 0, PGSIZE);
+        //printf("%p\n", (uint64)mem);
+        //疑问：为何在mappages内对pa进行加减操作? 
+         
+        if(mappages(p->pagetable, va_boundry, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
+          printf("Cannot allocate so much memory");
+          kfree(mem);
+          uvmdealloc(p->pagetable, va_boundry, p->sz);
+          p->killed = 1;
+        }
+        //printf("%p\n", (uint64)mem);
+        //printf("-------------------------after page table:\n");
+        //vmprint(p->pagetable, 1);
+        //printf("map:%p\n", walkaddr(p->pagetable, va)); 
+      }
+      else{
+        printf("Mem is 0 \n");
+        p->killed = 1;
+      } */
+      if(lazyalloc(p->pagetable, va_boundry) < 0){
+        p->killed = 1;
+      }
+    }
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;
   }
-
   if(p->killed)
     exit(-1);
-
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2)
     yield();
