@@ -483,7 +483,10 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     if(pa0 == 0){
       return -1;
     }
-    uint64 offset = (dstva - va0)
+    /**
+     * 这样就是在计算offset了
+     */
+    uint64 offset = (dstva - va0);
     n = PGSIZE - offset;
     if(n > len)
       n = len;
