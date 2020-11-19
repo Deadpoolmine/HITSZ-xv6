@@ -1,5 +1,9 @@
 // Mutual exclusion lock.
 struct spinlock {
+  /**
+   * 0 means the lock is free
+   * non-0 means the lock is held
+   */
   uint locked;       // Is the lock held?
 
   // For debugging:

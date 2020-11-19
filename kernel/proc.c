@@ -113,7 +113,6 @@ found:
     release(&p->lock);
     return 0;
   }
-
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
 
@@ -207,6 +206,7 @@ userinit(void)
   // allocate one user page and copy init's instructions
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
+  
   p->sz = PGSIZE;
 
   // prepare for the very first "return" from kernel to user.
@@ -228,7 +228,7 @@ growproc(int n)
 {
   uint sz;
   struct proc *p = myproc();
-
+  
   sz = p->sz;
   if(n > 0){
     if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
@@ -322,8 +322,11 @@ exit(int status)
 {
   struct proc *p = myproc();
 
-  if(p == initproc)
+  if(p == initproc){
+    printf("...");
     panic("init exiting");
+  }
+    
 
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){

@@ -36,15 +36,26 @@ acquire(struct spinlock *lk)
   push_off(); // disable interrupts to avoid deadlock.
   if(holding(lk))
     panic("acquire");
-
+  /** Acquire Calls  */
   __sync_fetch_and_add(&(lk->n), 1);
     
   // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
   //   a5 = 1
   //   s1 = &lk->locked
   //   amoswap.w.aq a5, a5, (s1)
+  /** 
+   * while(__sync_lock_test_and_set(&lk->locked, 1) != 0) 
+   * 相当于
+   * while(1){
+   *    if(lk->locked == 0){
+   *        lk->locked = 1;
+   *        break;
+   *    }
+   * }
+   */
   while(__sync_lock_test_and_set(&lk->locked, 1) != 0) {
-     __sync_fetch_and_add(&lk->nts, 1);
+    /** test-and-set Add  */
+    __sync_fetch_and_add(&lk->nts, 1);
   }
   
   // Tell the C compiler and the processor to not move loads or stores
@@ -141,6 +152,7 @@ sys_ntas(void)
   if (argint(0, &zero) < 0) {
     return -1;
   }
+  
   if(zero == 0) {
     for(int i = 0; i < NLOCK; i++) {
       if(locks[i] == 0)
