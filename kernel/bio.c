@@ -129,6 +129,7 @@ binit(void)
   for (b = bcache.buf; b < bcache.buf + NBUF; b++)
   {
     int hash = getHb(b);
+    b->time_stamp = ticks;
     b->next = bcache.buckets[hash].next;
     b->prev = &bcache.buckets[hash];
     initsleeplock(&b->lock, "buffer");
@@ -174,6 +175,7 @@ bget(uint dev, uint blockno)
 
   for(b = bcache.buckets[hash].next; b != &bcache.buckets[hash]; b = b->next){
     if(b->dev == dev && b->blockno == blockno){
+      b->time_stamp = ticks;
       b->refcnt++;
       //printf("## end has \n");
       release(&bcache.bucketslock[hash]);
@@ -213,6 +215,7 @@ bget(uint dev, uint blockno)
       acquire(&bcache.bucketslock[i]);
       for(b = bcache.buckets[i].prev; b != &bcache.buckets[i]; b = b->prev){
         if(b->refcnt == 0){
+          b->time_stamp = ticks;
           b->dev = dev;
           b->blockno = blockno;
           b->valid = 0;     //important  
@@ -305,31 +308,51 @@ brelse(struct buf *b)
   
   release(&bcache.lock); */
   /** My Implementation  */
+  /** Modify to using time_stamp  */
   int blockno = getHb(b);
+  b->time_stamp = ticks;
+  if(b->time_stamp == ticks){
+    b->refcnt--;
+    if(b->refcnt == 0){
+      /** 将b脱出  */
+      b->next->prev = b->prev;
+      b->prev->next = b->next;
+      
+      /** 将b接入  */
+      b->next = bcache.buckets[blockno].next;
+      b->prev = &bcache.buckets[blockno];
+      bcache.buckets[blockno].next->prev = b;
+      bcache.buckets[blockno].next = b;
+    }
+  }
   //printf("# release blockno: %d \n", blockno);
-  acquire(&bcache.bucketslock[blockno]);
+  
+  /* acquire(&bcache.bucketslock[blockno]);
   b->refcnt--;
   if(b->refcnt == 0){
-    /** 将b脱出  */
+    
     b->next->prev = b->prev;
     b->prev->next = b->next;
     
-    /** 将b接入  */
+    
     b->next = bcache.buckets[blockno].next;
     b->prev = &bcache.buckets[blockno];
     bcache.buckets[blockno].next->prev = b;
     bcache.buckets[blockno].next = b;
   }
-  release(&bcache.bucketslock[blockno]);
+  release(&bcache.bucketslock[blockno]); */
 }
 
 void
 bpin(struct buf *b) {
   //printf("see if bpin work\n");
   //int hash = getHb(b);
-  acquire(&bcache.lock);
+  b->time_stamp = ticks;
+  if(b->time_stamp == ticks)
+    b->refcnt++;
+  /* acquire(&bcache.lock);
   b->refcnt++;
-  release(&bcache.lock); 
+  release(&bcache.lock);  */
   /* acquire(&bcache.bucketslock[hash]);
   b->refcnt++;
   release(&bcache.bucketslock[hash]); */
@@ -338,9 +361,12 @@ bpin(struct buf *b) {
 void
 bunpin(struct buf *b) {
   //printf("see if bunpin work\n");
-  acquire(&bcache.lock);
+  b->time_stamp = ticks;
+  if(b->time_stamp == ticks)
+    b->refcnt--;
+  /* acquire(&bcache.lock);
   b->refcnt--;
-  release(&bcache.lock); 
+  release(&bcache.lock);  */
   /* int hash = getHb(b);
   acquire(&bcache.bucketslock[hash]);
   b->refcnt++;
