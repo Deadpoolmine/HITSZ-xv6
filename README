@@ -1,4 +1,4 @@
-## 感谢刘俊杰的一点提醒😄——subref应该在kfree内部执行，不然很多其他程序无法进行kfree（ref一直为1）
+## 感谢LJJ的一点提醒😄——subref应该在kfree内部执行，不然很多其他程序无法进行kfree（ref一直为1）
 
 xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
 Version 6 (v6).  xv6 loosely follows the structure and style of v6,
