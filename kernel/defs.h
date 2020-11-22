@@ -62,6 +62,10 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit();
+/** 添加Reference  */
+void            addref(char*, void *);
+void            subref(char*, void *);
+int             getref(void*);
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -168,6 +172,8 @@ void            uvmfree(pagetable_t, uint64);
 void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);
 uint64          walkaddr(pagetable_t, uint64);
+/** 添加walk  */
+pte_t*          walk(pagetable_t, uint64 , int); 
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);

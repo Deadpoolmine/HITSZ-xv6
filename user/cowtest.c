@@ -180,11 +180,12 @@ filetest()
 int
 main(int argc, char *argv[])
 {
+  printf("section 1:\n");
   simpletest();
-
+  printf("section 2:\n");
   // check that the first simpletest() freed the physical memory.
   simpletest();
-
+  printf("section 3:\n");
   threetest();
   threetest();
   threetest();
