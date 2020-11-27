@@ -122,7 +122,11 @@ found:
   memset(&p->context, 0, sizeof p->context);
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
-
+  /** AlarmTest  */
+  p->ticks = -1;
+  p->tickpassed = 0;
+  p->handler = 0;
+  
   return p;
 }
 
@@ -505,6 +509,12 @@ sched(void)
   mycpu()->intena = intena;
 }
 
+/**
+ * 
+ * Yield in turn calls sched, which calls
+ * swtch to save the current context in p->context and switch to the scheduler context previously
+ * saved in cpu->scheduler
+ */
 // Give up the CPU for one scheduling round.
 void
 yield(void)

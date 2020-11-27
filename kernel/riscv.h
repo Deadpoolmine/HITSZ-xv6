@@ -45,7 +45,13 @@ w_mepc(uint64 x)
 #define SSTATUS_UPIE (1L << 4) // User Previous Interrupt Enable
 #define SSTATUS_SIE (1L << 1)  // Supervisor Interrupt Enable
 #define SSTATUS_UIE (1L << 0)  // User Interrupt Enable
-
+/**
+ * SSTATUS:
+ * The SIE bit controls whether device interrupts are enabled. If the kernel clears SIE,
+ * the RISC-V will defer device interrupts until the kernel sets SIE. The SPP bit indicates
+ * whether a trap came from user mode or supervisor mode, and controls to what mode sret
+ * returns.
+ */
 static inline uint64
 r_sstatus()
 {
@@ -111,6 +117,11 @@ w_mie(uint64 x)
   asm volatile("csrw mie, %0" : : "r" (x));
 }
 
+/**
+ * SEPC:
+ * When a trap occurs, 
+ * RISC-V saves the program counter here 
+ */
 // machine exception program counter, holds the
 // instruction address to which a return from
 // exception will go.
@@ -158,6 +169,11 @@ w_mideleg(uint64 x)
   asm volatile("csrw mideleg, %0" : : "r" (x));
 }
 
+/** 
+ * STVEC:
+ * The kernel writes the address of its trap handler here; 
+ * the RISC-V jumps here to handle
+ * a trap. */
 // Supervisor Trap-Vector Base Address
 // low two bits are mode.
 static inline void 
@@ -202,6 +218,11 @@ r_satp()
   return x;
 }
 
+/**
+ * SSCRATCH: 
+ * The kernel places a value here that comes in handy（迟早有用） 
+ * at the very start of a trap handler.
+ */
 // Supervisor Scratch register, for early trap handler in trampoline.S.
 static inline void 
 w_sscratch(uint64 x)
@@ -215,6 +236,10 @@ w_mscratch(uint64 x)
   asm volatile("csrw mscratch, %0" : : "r" (x));
 }
 
+/**
+ * SCAUSE:
+ * The RISC-V puts a number here that describes the reason for the trap
+ */
 // Supervisor Trap Cause
 static inline uint64
 r_scause()

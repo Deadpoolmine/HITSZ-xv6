@@ -501,3 +501,31 @@ sys_crash(void)
   crash_op(ip->dev, crash);
   return 0;
 }
+
+/** AlarmTest  */
+uint64 
+sys_sigalarm(void){
+  struct proc *p = myproc();
+  uint64 handler;
+  int ticks;
+
+  if(argint(0, &ticks) < 0)
+    return -1;
+  
+  if(argaddr(1, &handler) < 0)
+    return -1;
+ 
+  p->ticks = ticks;
+  p->handler = (void *)handler;
+  return 0;
+}
+
+uint64 
+sys_sigreturn(void){
+  struct proc *p = myproc();
+  p->tickpassed = 0;
+  p->ticks = -1;
+  memmove(p->tf, &p->savedtf, sizeof(struct trapframe));
+  // printf("call return;\n");
+  return 0;
+}
