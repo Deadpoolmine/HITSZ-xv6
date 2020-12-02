@@ -122,6 +122,13 @@ recover_from_log(int dev)
 }
 
 // called at the start of each FS system call.
+/**
+ * 
+ * begin_op() waits until the logging system is 
+ * not currently committing, 
+ * and until there is enough unreserved log 
+ * space to hold the writes from this call.
+ */
 void
 begin_op(int dev)
 {
@@ -133,6 +140,7 @@ begin_op(int dev)
       // this op might exhaust log space; wait for commit.
       sleep(&log, &log[dev].lock);
     } else {
+      /** log.outstanding counts the number of system calls that have reserved log space  */
       log[dev].outstanding += 1;
       release(&log[dev].lock);
       break;

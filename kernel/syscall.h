@@ -23,3 +23,5 @@
 
 // System calls for labs
 #define SYS_ntas   22
+/** Symbol link  */
+#define SYS_symlink 23

@@ -41,6 +41,7 @@ main()
   }
   for(i = 0; i < blocks; i++){
     int cc = read(fd, buf, sizeof(buf));
+   // printf("data: %d\n", *(int*)buf);
     if(cc <= 0){
       printf("bigfile: read error at block %d\n", i);
       exit(-1);
