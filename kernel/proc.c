@@ -123,6 +123,14 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  /** Implementation of MMAP  */
+  //printf("hello here\n");
+  for (int i = NVMA - 1; i >= 0; i--)
+  {
+    p->vmas[i].vm_valid = 1;
+  }
+  //printf("hello there\n");
+  p->current_maxva = VMASTART;
   return p;
 }
 
@@ -265,6 +273,21 @@ fork(void)
 
   np->parent = p;
 
+  /** Modify fork to ensure that the child has the same mapped regions as the parent.  */
+  np->current_maxva = p->current_maxva;
+  for (int i = NVMA - 1; i >= 0; i--)
+  {
+    if(p->vmas[i].vm_file)
+      p->vmas[i].vm_file->ref++;
+    np->vmas[i].vm_end = p->vmas[i].vm_end;
+    np->vmas[i].vm_fd = p->vmas[i].vm_fd;
+    np->vmas[i].vm_file = p->vmas[i].vm_file;
+    np->vmas[i].vm_flags = p->vmas[i].vm_flags;
+    np->vmas[i].vm_prot = p->vmas[i].vm_prot;
+    np->vmas[i].vm_start = p->vmas[i].vm_start;
+    np->vmas[i].vm_valid = p->vmas[i].vm_valid;
+  }
+  
   // copy saved user registers.
   *(np->tf) = *(p->tf);
 
@@ -282,7 +305,7 @@ fork(void)
   pid = np->pid;
 
   np->state = RUNNABLE;
-
+  
   release(&np->lock);
 
   return pid;
@@ -333,7 +356,32 @@ exit(int status)
       p->ofile[fd] = 0;
     }
   }
-
+  /** 
+   * Unmap all the maped regions  
+   * 从下往上回收
+   * */
+  struct VMA* vma;
+  for (int i = 0; i < NVMA; i++)
+  {
+    if(!p->vmas[i].vm_valid){
+      vma = &p->vmas[i];
+      vma->vm_valid = 1;
+      int totsz = vma->vm_end - vma->vm_start;
+      if(walkaddr(p->pagetable, vma->vm_start)){
+        if(vma->vm_flags == MAP_SHARED){
+          printf("sys_munmap(): write back \n");
+          filewrite(vma->vm_file, vma->vm_start, totsz);
+        }
+        uvmunmap(p->pagetable, vma->vm_start, totsz,1);
+      }
+      vma->vm_start += totsz;
+      if(vma->vm_start == vma->vm_end){
+        vma->vm_file->ref--;
+      }
+    }
+  }
+  p->current_maxva = VMASTART;
+  
   begin_op(ROOTDEV);
   iput(p->cwd);
   end_op(ROOTDEV);

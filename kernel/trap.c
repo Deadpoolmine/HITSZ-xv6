@@ -6,6 +6,18 @@
 #include "proc.h"
 #include "defs.h"
 
+struct file {
+  enum { FD_NONE, FD_PIPE, FD_INODE, FD_DEVICE } type;
+  int ref; // reference count
+  char readable;
+  char writable;
+  struct pipe *pipe; // FD_PIPE
+  struct inode *ip;  // FD_INODE and FD_DEVICE
+  uint off;          // FD_INODE and FD_DEVICE
+  short major;       // FD_DEVICE
+  short minor;       // FD_DEVICE
+};
+
 struct spinlock tickslock;
 uint ticks;
 
@@ -71,11 +83,67 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
-    printf("usertrap(): unexpected scause %p (%s) pid=%d\n", r_scause(), scause_desc(r_scause()), p->pid);
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    p->killed = 1;
-  }
+    if(r_scause() == 13 || r_scause() == 15){
+      
+      /**
+       * Implement Lazy allocation for mmap 
+       * 
+       * REASON: That is, mmap should not allocate physical memory or read the file
+       * */
+      struct proc* p = myproc();
+      uint64 va = PGROUNDDOWN(r_stval());
+      printf("MAXVA: %p, va: %p, current_max: %p\n",MAXVA, va, p->current_maxva);
+      /** 找到虚拟地址对应的vma  */
+      struct VMA* vma = 0; /* = &p->vmas[p->current_ivma]; */ 
+      for (int i = NVMA; i >= 0; i--)
+      {
+        if(p->vmas[i].vm_start <= va && va <= p->vmas[i].vm_end){
+          vma = &p->vmas[i];
+          break;
+        }
+      }
+      if(vma == 0){
+        printf("usertrap(): not find vma \n");
+        p->killed = 1;
+        goto end;
+      }
+      if(va > vma->vm_end){
+        printf("usertrap(): va is greater than vm_end \n");
+        p->killed = 1;
+        goto end;
+      }
+      /** 内存向上增长  */
+      char* mem = (char *)kalloc();
+      if(mem == 0){
+        printf("usertrap(): no mem left\n");
+        p->killed = 1;
+        goto end;
+      }
+      printf("walk va %p result : %d \n",va, walkaddr(p->pagetable, va));
+      memset(mem, 0, PGSIZE);
+      /** Don't forget to set the permissions correctly on the page  */
+      if(mappages(p->pagetable, va, PGSIZE, (uint64)mem, vma->vm_prot|PTE_U|PTE_X) < 0){
+        printf("usertrap(): cannot map\n");
+        kfree(mem);
+        p->killed = 1;
+        goto end;
+      }
+      /** 利用readi将文件内容映射到虚拟地址上，映射的长度为 va - vma->vm_start  */
+      struct file* f = vma->vm_file;
+      int offset = va - vma->vm_start;
 
+      ilock(f->ip);
+      readi(f->ip, 1, va, offset, PGSIZE);
+      iunlock(f->ip);
+    }
+    else
+    {
+      printf("usertrap(): unexpected scause %p (%s) pid=%d\n", r_scause(), scause_desc(r_scause()), p->pid);
+      printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+      p->killed = 1;
+    }
+  }
+end:
   if(p->killed)
     exit(-1);
 

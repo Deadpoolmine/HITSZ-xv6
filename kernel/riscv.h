@@ -332,6 +332,16 @@ sfence_vma()
 #define PTE_X (1L << 3)
 #define PTE_U (1L << 4) // 1 -> user can access
 
+/** Add Related Flag Associated with MMAP   */
+/** VMA的数量(允许开辟100个)  */
+#define PROT_WRITE PTE_W
+#define PROT_READ  PTE_R
+
+#define MAP_PRIVATE               0x1
+#define MAP_SHARED                0x2
+#define NVMA                      100
+
+
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
 
@@ -352,3 +362,8 @@ sfence_vma()
 
 typedef uint64 pte_t;
 typedef uint64 *pagetable_t; // 512 PTEs
+
+
+
+
+#define VMASTART  PGROUNDDOWN(MAXVA - 2 * PGSIZE)

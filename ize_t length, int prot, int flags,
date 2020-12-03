@@ -1,0 +1,447 @@
+MMAP(2)                                           Linux Programmer's Manual                                           MMAP(2)
+
+NNAAMMEE
+       mmap, munmap - map or unmap files or devices into memory
+
+SSYYNNOOPPSSIISS
+       ##iinncclluuddee <<ssyyss//mmmmaann..hh>>
+
+       vvooiidd **mmmmaapp((vvooiidd **_a_d_d_r,, ssiizzee__tt _l_e_n_g_t_h,, iinntt _p_r_o_t,, iinntt _f_l_a_g_s,,
+                  iinntt _f_d,, ooffff__tt _o_f_f_s_e_t));;
+       iinntt mmuunnmmaapp((vvooiidd **_a_d_d_r,, ssiizzee__tt _l_e_n_g_t_h));;
+
+       See NOTES for information on feature test macro requirements.
+
+DDEESSCCRRIIPPTTIIOONN
+       mmmmaapp()  creates  a  new mapping in the virtual address space of the calling process.  The starting address for the new
+       mapping is specified in _a_d_d_r.  The _l_e_n_g_t_h argument specifies the length of the mapping (which must be greater than 0).
+
+       If _a_d_d_r is NULL, then the kernel chooses the (page-aligned) address at which to create the mapping; this is  the  most
+       portable  method  of  creating  a new mapping.  If _a_d_d_r is not NULL, then the kernel takes it as a hint about where to
+       place the mapping; on Linux, the kernel will pick a nearby page boundary (but always above or equal to the value spec‐
+       ified  by  _/_p_r_o_c_/_s_y_s_/_v_m_/_m_m_a_p___m_i_n___a_d_d_r)  and  attempt  to  create the mapping there.  If another mapping already exists
+       there, the kernel picks a new address that may or may not depend on the hint.  The address of the new mapping  is  re‐
+       turned as the result of the call.
+
+       The  contents  of  a file mapping (as opposed to an anonymous mapping; see MMAAPP__AANNOONNYYMMOOUUSS below), are initialized using
+       _l_e_n_g_t_h bytes starting at offset _o_f_f_s_e_t in the file (or other object) referred to by the file  descriptor  _f_d.   _o_f_f_s_e_t
+       must be a multiple of the page size as returned by _s_y_s_c_o_n_f_(___S_C___P_A_G_E___S_I_Z_E_).
+
+       After  the  mmmmaapp() call has returned, the file descriptor, _f_d, can be closed immediately without invalidating the map‐
+       ping.
+
+       The _p_r_o_t argument describes the desired memory protection of the mapping (and must not conflict with the open mode  of
+       the file).  It is either PPRROOTT__NNOONNEE or the bitwise OR of one or more of the following flags:
+
+       PPRROOTT__EEXXEECC  Pages may be executed.
+
+       PPRROOTT__RREEAADD  Pages may be read.
+
+       PPRROOTT__WWRRIITTEE Pages may be written.
+
+       PPRROOTT__NNOONNEE  Pages may not be accessed.
+
+       The  _f_l_a_g_s  argument determines whether updates to the mapping are visible to other processes mapping the same region,
+       and whether updates are carried through to the underlying file.  This behavior is determined by including exactly  one
+       of the following values in _f_l_a_g_s:
+
+       MMAAPP__SSHHAARREEDD
+              Share this mapping.  Updates to the mapping are visible to other processes mapping the same region, and (in the
+              case of file-backed mappings) are carried through to the underlying file.  (To precisely control  when  updates
+              are carried through to the underlying file requires the use of mmssyynncc(2).)
+
+       MMAAPP__SSHHAARREEDD__VVAALLIIDDAATTEE (since Linux 4.15)
+              This  flag  provides  the  same  behavior as MMAAPP__SSHHAARREEDD except that MMAAPP__SSHHAARREEDD mappings ignore unknown flags in
+              _f_l_a_g_s.  By contrast, when creating a mapping using MMAAPP__SSHHAARREEDD__VVAALLIIDDAATTEE, the kernel verifies  all  passed  flags
+              are  known  and  fails  the mapping with the error EEOOPPNNOOTTSSUUPPPP for unknown flags.  This mapping type is also re‐
+              quired to be able to use some mapping flags (e.g., MMAAPP__SSYYNNCC).
+
+       MMAAPP__PPRRIIVVAATTEE
+              Create a private copy-on-write mapping.  Updates to the mapping are not visible to other processes mapping  the
+              same  file,  and are not carried through to the underlying file.  It is unspecified whether changes made to the
+              file after the mmmmaapp() call are visible in the mapped region.
+
+       Both MMAAPP__SSHHAARREEDD and MMAAPP__PPRRIIVVAATTEE are described in POSIX.1-2001 and POSIX.1-2008.  MMAAPP__SSHHAARREEDD__VVAALLIIDDAATTEE is a Linux exten‐
+       sion.
+
+       In addition, zero or more of the following values can be ORed in _f_l_a_g_s:
+
+       MMAAPP__3322BBIITT (since Linux 2.4.20, 2.6)
+              Put  the  mapping  into  the  first  2  Gigabytes of the process address space.  This flag is supported only on
+              x86-64, for 64-bit programs.  It was added to allow thread stacks to be allocated somewhere in the  first  2 GB
+              of  memory, so as to improve context-switch performance on some early 64-bit processors.  Modern x86-64 proces‐
+              sors no longer have this performance problem, so use of this flag  is  not  required  on  those  systems.   The
+              MMAAPP__3322BBIITT flag is ignored when MMAAPP__FFIIXXEEDD is set.
+
+       MMAAPP__AANNOONN
+              Synonym for MMAAPP__AANNOONNYYMMOOUUSS.  Deprecated.
+
+       MMAAPP__AANNOONNYYMMOOUUSS
+              The  mapping is not backed by any file; its contents are initialized to zero.  The _f_d argument is ignored; how‐
+              ever, some implementations require _f_d to be -1 if MMAAPP__AANNOONNYYMMOOUUSS (or MMAAPP__AANNOONN) is specified, and portable appli‐
+              cations  should ensure this.  The _o_f_f_s_e_t argument should be zero.  The use of MMAAPP__AANNOONNYYMMOOUUSS in conjunction with
+              MMAAPP__SSHHAARREEDD is supported on Linux only since kernel 2.4.
+
+       MMAAPP__DDEENNYYWWRRIITTEE
+              This flag is ignored.  (Long ago—Linux 2.0 and earlier—it signaled that attempts to  write  to  the  underlying
+              file should fail with EETTXXTTBBUUSSYY.  But this was a source of denial-of-service attacks.)
+
+       MMAAPP__EEXXEECCUUTTAABBLLEE
+              This flag is ignored.
+
+       MMAAPP__FFIILLEE
+              Compatibility flag.  Ignored.
+
+       MMAAPP__FFIIXXEEDD
+              Don't  interpret _a_d_d_r as a hint: place the mapping at exactly that address.  _a_d_d_r must be suitably aligned: for
+              most architectures a multiple of the page size is sufficient; however, some architectures may impose additional
+              restrictions.   If  the memory region specified by _a_d_d_r and _l_e_n overlaps pages of any existing mapping(s), then
+              the overlapped part of the existing mapping(s) will be discarded.  If the specified  address  cannot  be  used,
+              mmmmaapp() will fail.
+
+              Software  that  aspires  to be portable should use the MMAAPP__FFIIXXEEDD flag with care, keeping in mind that the exact
+              layout of a process's memory mappings is allowed to change significantly between  kernel  versions,  C  library
+              versions, and operating system releases.  _C_a_r_e_f_u_l_l_y _r_e_a_d _t_h_e _d_i_s_c_u_s_s_i_o_n _o_f _t_h_i_s _f_l_a_g _i_n _N_O_T_E_S_!
+
+       MMAAPP__FFIIXXEEDD__NNOORREEPPLLAACCEE (since Linux 4.17)
+              This  flag  provides behavior that is similar to MMAAPP__FFIIXXEEDD with respect to the _a_d_d_r enforcement, but differs in
+              that MMAAPP__FFIIXXEEDD__NNOORREEPPLLAACCEE never clobbers a preexisting mapped range.  If the requested range would collide  with
+              an  existing  mapping, then this call fails with the error EEEEXXIISSTT..  This flag can therefore be used as a way to
+              atomically (with respect to other threads) attempt to map an address range: one thread will succeed; all others
+              will report failure.
+
+              Note  that  older  kernels which do not recognize the MMAAPP__FFIIXXEEDD__NNOORREEPPLLAACCEE flag will typically (upon detecting a
+              collision with a preexisting mapping) fall back to a "non-MMAAPP__FFIIXXEEDD"" ttyyppee ooff bbeehhaavviioorr:: they will return an  ad‐
+              dress  that  is different from the requested address.  Therefore, backward-compatible software should check the
+              returned address against the requested address.
+
+       MMAAPP__GGRROOWWSSDDOOWWNN
+              This flag is used for stacks.  It indicates to the kernel virtual memory system that the mapping should  extend
+              downward  in memory.  The return address is one page lower than the memory area that is actually created in the
+              process's virtual address space.  Touching an address in the "guard" page below the mapping will cause the map‐
+              ping  to  grow by a page.  This growth can be repeated until the mapping grows to within a page of the high end
+              of the next lower mapping, at which point touching the "guard" page will result in a SSIIGGSSEEGGVV signal.
+
+       MMAAPP__HHUUGGEETTLLBB (since Linux 2.6.32)
+              Allocate  the  mapping  using  "huge  pages."   See  the  Linux   kernel   source   file   _D_o_c_u_m_e_n_t_a_t_i_o_n_/_a_d_m_i_n_-
+              _g_u_i_d_e_/_m_m_/_h_u_g_e_t_l_b_p_a_g_e_._r_s_t for further information, as well as NOTES, below.
+
+       MMAAPP__HHUUGGEE__22MMBB, MMAAPP__HHUUGGEE__11GGBB (since Linux 3.8)
+              Used  in conjunction with MMAAPP__HHUUGGEETTLLBB to select alternative hugetlb page sizes (respectively, 2 MB and 1 GB) on
+              systems that support multiple hugetlb page sizes.
+
+              More generally, the desired huge page size can be configured by encoding the base-2 logarithm  of  the  desired
+              page  size  in  the six bits at the offset MMAAPP__HHUUGGEE__SSHHIIFFTT.  (A value of zero in this bit field provides the de‐
+              fault huge page size; the default huge page size can be  discovered  via  the  _H_u_g_e_p_a_g_e_s_i_z_e  field  exposed  by
+              _/_p_r_o_c_/_m_e_m_i_n_f_o.)  Thus, the above two constants are defined as:
+
+                  #define MAP_HUGE_2MB    (21 << MAP_HUGE_SHIFT)
+                  #define MAP_HUGE_1GB    (30 << MAP_HUGE_SHIFT)
+
+              The  range  of huge page sizes that are supported by the system can be discovered by listing the subdirectories
+              in _/_s_y_s_/_k_e_r_n_e_l_/_m_m_/_h_u_g_e_p_a_g_e_s.
+
+       MMAAPP__LLOOCCKKEEDD (since Linux 2.5.37)
+              Mark the mapped region to be locked in the same way as mmlloocckk(2).  This  implementation  will  try  to  populate
+              (prefault)  the whole range but the mmmmaapp() call doesn't fail with EENNOOMMEEMM if this fails.  Therefore major faults
+              might happen later on.  So the semantic is not as strong as mmlloocckk(2).  One should use mmmmaapp() plus mmlloocckk(2) when
+              major  faults  are  not  acceptable after the initialization of the mapping.  The MMAAPP__LLOOCCKKEEDD flag is ignored in
+              older kernels.
+
+       MMAAPP__NNOONNBBLLOOCCKK (since Linux 2.5.46)
+              This flag is meaningful only in conjunction with MMAAPP__PPOOPPUULLAATTEE.  Don't perform read-ahead:  create  page  tables
+              entries  only  for pages that are already present in RAM.  Since Linux 2.6.23, this flag causes MMAAPP__PPOOPPUULLAATTEE to
+              do nothing.  One day, the combination of MMAAPP__PPOOPPUULLAATTEE and MMAAPP__NNOONNBBLLOOCCKK may be reimplemented.
+
+       MMAAPP__NNOORREESSEERRVVEE
+              Do not reserve swap space for this mapping.  When swap space is reserved, one has the guarantee that it is pos‐
+              sible to modify the mapping.  When swap space is not reserved one might get SSIIGGSSEEGGVV upon a write if no physical
+              memory is available.  See also the discussion of the file _/_p_r_o_c_/_s_y_s_/_v_m_/_o_v_e_r_c_o_m_m_i_t___m_e_m_o_r_y in pprroocc(5).   In  ker‐
+              nels before 2.6, this flag had effect only for private writable mappings.
+
+       MMAAPP__PPOOPPUULLAATTEE (since Linux 2.5.46)
+              Populate  (prefault)  page tables for a mapping.  For a file mapping, this causes read-ahead on the file.  This
+              will help to reduce blocking on page faults later.  MMAAPP__PPOOPPUULLAATTEE is supported for private mappings  only  since
+              Linux 2.6.23.
+
+       MMAAPP__SSTTAACCKK (since Linux 2.6.27)
+              Allocate the mapping at an address suitable for a process or thread stack.
+
+              This  flag  is  currently a no-op on Linux.  However, by employing this flag, applications can ensure that they
+              transparently obtain support if the flag is implemented in the future.  Thus, it is used in the glibc threading
+              implementation  to  allow  for the fact that some architectures may (later) require special treatment for stack
+              allocations.  A further reason to employ this flag is portability: MMAAPP__SSTTAACCKK exists (and has an effect) on some
+              other systems (e.g., some of the BSDs).
+
+       MMAAPP__SSYYNNCC (since Linux 4.15)
+              This  flag  is  available  only  with  the  MMAAPP__SSHHAARREEDD__VVAALLIIDDAATTEE  mapping type; mappings of type MMAAPP__SSHHAARREEDD will
+              silently ignore this flag.  This flag is supported only for files supporting DAX (direct mapping of  persistent
+              memory).  For other files, creating a mapping with this flag results in an EEOOPPNNOOTTSSUUPPPP error.
+
+              Shared  file mappings with this flag provide the guarantee that while some memory is writably mapped in the ad‐
+              dress space of the process, it will be visible in the same file at  the  same  offset  even  after  the  system
+              crashes  or  is  rebooted.  In conjunction with the use of appropriate CPU instructions, this provides users of
+              such mappings with a more efficient way of making data modifications persistent.
+
+       MMAAPP__UUNNIINNIITTIIAALLIIZZEEDD (since Linux 2.6.33)
+              Don't clear anonymous pages.  This flag is intended to improve performance on embedded devices.  This  flag  is
+              honored  only if the kernel was configured with the CCOONNFFIIGG__MMMMAAPP__AALLLLOOWW__UUNNIINNIITTIIAALLIIZZEEDD option.  Because of the se‐
+              curity implications, that option is normally enabled only on embedded devices (i.e., devices where one has com‐
+              plete control of the contents of user memory).
+
+       Of  the above flags, only MMAAPP__FFIIXXEEDD is specified in POSIX.1-2001 and POSIX.1-2008.  However, most systems also support
+       MMAAPP__AANNOONNYYMMOOUUSS (or its synonym MMAAPP__AANNOONN).
+
+       Memory mapped by mmmmaapp() is preserved across ffoorrkk(2), with the same attributes.
+
+       A file is mapped in multiples of the page size.  For a file that is not a multiple of the  page  size,  the  remaining
+       memory  is  zeroed when mapped, and writes to that region are not written out to the file.  The effect of changing the
+       size of the underlying file of a mapping on the pages that correspond to added or removed regions of the file  is  un‐
+       specified.
+
+   mmuunnmmaapp(())
+       The  mmuunnmmaapp()  system  call deletes the mappings for the specified address range, and causes further references to ad‐
+       dresses within the range to generate invalid memory references.  The region is also automatically  unmapped  when  the
+       process is terminated.  On the other hand, closing the file descriptor does not unmap the region.
+
+       The address _a_d_d_r must be a multiple of the page size (but _l_e_n_g_t_h need not be).  All pages containing a part of the in‐
+       dicated range are unmapped, and subsequent references to these pages will generate SSIIGGSSEEGGVV.  It is not an error if the
+       indicated range does not contain any mapped pages.
+
+RREETTUURRNN VVAALLUUEE
+       On success, mmmmaapp() returns a pointer to the mapped area.  On error, the value MMAAPP__FFAAIILLEEDD (that is, _(_v_o_i_d _*_) _-_1) is re‐
+       turned, and _e_r_r_n_o is set to indicate the cause of the error.
+
+       On success, mmuunnmmaapp() returns 0.  On failure, it returns -1, and _e_r_r_n_o is set to indicate the cause of the error (prob‐
+       ably to EEIINNVVAALL).
+
+EERRRROORRSS
+       EEAACCCCEESS A  file descriptor refers to a non-regular file.  Or a file mapping was requested, but _f_d is not open for read‐
+              ing.  Or MMAAPP__SSHHAARREEDD was requested and PPRROOTT__WWRRIITTEE is set, but _f_d is not open in read/write  (OO__RRDDWWRR)  mode.   Or
+              PPRROOTT__WWRRIITTEE is set, but the file is append-only.
+
+       EEAAGGAAIINN The file has been locked, or too much memory has been locked (see sseettrrlliimmiitt(2)).
+
+       EEBBAADDFF  _f_d is not a valid file descriptor (and MMAAPP__AANNOONNYYMMOOUUSS was not set).
+
+       EEEEXXIISSTT MMAAPP__FFIIXXEEDD__NNOORREEPPLLAACCEE  was  specified in _f_l_a_g_s, and the range covered by _a_d_d_r and _l_e_n_g_t_h clashes with an existing
+              mapping.
+
+       EEIINNVVAALL We don't like _a_d_d_r, _l_e_n_g_t_h, or _o_f_f_s_e_t (e.g., they are too large, or not aligned on a page boundary).
+
+       EEIINNVVAALL (since Linux 2.6.12) _l_e_n_g_t_h was 0.
+
+       EEIINNVVAALL _f_l_a_g_s contained none of MMAAPP__PPRRIIVVAATTEE, MMAAPP__SSHHAARREEDD or MMAAPP__SSHHAARREEDD__VVAALLIIDDAATTEE.
+
+       EENNFFIILLEE The system-wide limit on the total number of open files has been reached.
+
+       EENNOODDEEVV The underlying filesystem of the specified file does not support memory mapping.
+
+       EENNOOMMEEMM No memory is available.
+
+       EENNOOMMEEMM The process's maximum number of mappings would have been exceeded.  This error can  also  occur  for  mmuunnmmaapp(),
+              when unmapping a region in the middle of an existing mapping, since this results in two smaller mappings on ei‐
+              ther side of the region being unmapped.
+
+       EENNOOMMEEMM (since Linux 4.7) The process's RRLLIIMMIITT__DDAATTAA limit, described in ggeettrrlliimmiitt(2), would have been exceeded.
+
+       EEOOVVEERRFFLLOOWW
+              On 32-bit architecture together with the large file extension (i.e., using 64-bit _o_f_f___t): the number  of  pages
+              used for _l_e_n_g_t_h plus number of pages used for _o_f_f_s_e_t would overflow _u_n_s_i_g_n_e_d _l_o_n_g (32 bits).
+
+       EEPPEERRMM  The _p_r_o_t argument asks for PPRROOTT__EEXXEECC but the mapped area belongs to a file on a filesystem that was mounted no-
+              exec.
+
+       EEPPEERRMM  The operation was prevented by a file seal; see ffccnnttll(2).
+
+       EETTXXTTBBSSYY
+              MMAAPP__DDEENNYYWWRRIITTEE was set but the object specified by _f_d is open for writing.
+
+       Use of a mapped region can result in these signals:
+
+       SSIIGGSSEEGGVV
+              Attempted write into a region mapped as read-only.
+
+       SSIIGGBBUUSS Attempted access to a portion of the buffer that does not correspond to the file (for example, beyond  the  end
+              of the file, including the case where another process has truncated the file).
+
+AATTTTRRIIBBUUTTEESS
+       For an explanation of the terms used in this section, see aattttrriibbuutteess(7).
+
+       ┌───────────────────┬───────────────┬─────────┐
+       │IInntteerrffaaccee          │ AAttttrriibbuuttee     │ VVaalluuee   │
+       ├───────────────────┼───────────────┼─────────┤
+       │mmmmaapp(), mmuunnmmaapp()   │ Thread safety │ MT-Safe │
+       └───────────────────┴───────────────┴─────────┘
+CCOONNFFOORRMMIINNGG TTOO
+       POSIX.1-2001, POSIX.1-2008, SVr4, 4.4BSD.
+
+AAVVAAIILLAABBIILLIITTYY
+       On  POSIX  systems on which mmmmaapp(), mmssyynncc(2), and mmuunnmmaapp() are available, __PPOOSSIIXX__MMAAPPPPEEDD__FFIILLEESS is defined in _<_u_n_i_s_t_d_._h_>
+       to a value greater than 0.  (See also ssyyssccoonnff(3).)
+
+NNOOTTEESS
+       On some hardware architectures (e.g., i386), PPRROOTT__WWRRIITTEE implies  PPRROOTT__RREEAADD.   It  is  architecture  dependent  whether
+       PPRROOTT__RREEAADD  implies  PPRROOTT__EEXXEECC or not.  Portable programs should always set PPRROOTT__EEXXEECC if they intend to execute code in
+       the new mapping.
+
+       The portable way to create a mapping is to specify _a_d_d_r as 0 (NULL), and omit MMAAPP__FFIIXXEEDD from _f_l_a_g_s.  In this case, the
+       system chooses the address for the mapping; the address is chosen so as not to conflict with any existing mapping, and
+       will not be 0.  If the MMAAPP__FFIIXXEEDD flag is specified, and _a_d_d_r is 0 (NULL), then the mapped address will be 0 (NULL).
+
+       Certain _f_l_a_g_s constants are defined only if suitable feature test macros  are  defined  (possibly  by  default):  __DDEE‐‐
+       FFAAUULLTT__SSOOUURRCCEE  with  glibc  2.19  or  later;  or  __BBSSDD__SSOOUURRCCEE  or  __SSVVIIDD__SSOOUURRCCEE  in glibc 2.19 and earlier.  (Employing
+       __GGNNUU__SSOOUURRCCEE also suffices, and requiring that macro specifically would have been more logical, since these  flags  are
+       all  Linux-specific.)   The  relevant  flags  are: MMAAPP__3322BBIITT, MMAAPP__AANNOONNYYMMOOUUSS (and the synonym MMAAPP__AANNOONN), MMAAPP__DDEENNYYWWRRIITTEE,
+       MMAAPP__EEXXEECCUUTTAABBLLEE, MMAAPP__FFIILLEE, MMAAPP__GGRROOWWSSDDOOWWNN,  MMAAPP__HHUUGGEETTLLBB,  MMAAPP__LLOOCCKKEEDD,  MMAAPP__NNOONNBBLLOOCCKK,  MMAAPP__NNOORREESSEERRVVEE,  MMAAPP__PPOOPPUULLAATTEE,  and
+       MMAAPP__SSTTAACCKK.
+
+       An  application  can  determine  which  pages  of a mapping are currently resident in the buffer/page cache using mmiinn‐‐
+       ccoorree(2).
+
+   UUssiinngg MMAAPP__FFIIXXEEDD ssaaffeellyy
+       The only safe use for MMAAPP__FFIIXXEEDD is where the address range specified by _a_d_d_r and _l_e_n_g_t_h was previously reserved  using
+       another mapping; otherwise, the use of MMAAPP__FFIIXXEEDD is hazardous because it forcibly removes preexisting mappings, making
+       it easy for a multithreaded process to corrupt its own address space.
+
+       For example, suppose that thread A looks through _/_p_r_o_c_/_<_p_i_d_>_/_m_a_p_s and in order to locate an unused address range  that
+       it  can  map  using  MMAAPP__FFIIXXEEDD,  while  thread B simultaneously acquires part or all of that same address range.  When
+       thread A subsequently employs mmmmaapp((MMAAPP__FFIIXXEEDD)), it will effectively clobber the mapping that thread B created.  In this
+       scenario,  thread  B need not create a mapping directly; simply making a library call that, internally, uses ddllooppeenn(3)
+       to load some other shared library, will suffice.  The ddllooppeenn(3) call will map the library into the  process's  address
+       space.   Furthermore,  almost  any  library  call may be implemented in a way that adds memory mappings to the address
+       space, either with this technique, or by simply allocating memory.  Examples include bbrrkk(2),  mmaalllloocc(3),  pptthhrreeaadd__ccrree‐‐
+       aattee(3), and the PAM libraries ⟨http://www.linux-pam.org⟩.
+
+       Since  Linux  4.17,  a  multithreaded program can use the MMAAPP__FFIIXXEEDD__NNOORREEPPLLAACCEE flag to avoid the hazard described above
+       when attempting to create a mapping at a fixed address that has not been reserved by a preexisting mapping.
+
+   TTiimmeessttaammppss cchhaannggeess ffoorr ffiillee--bbaacckkeedd mmaappppiinnggss
+       For file-backed mappings, the _s_t___a_t_i_m_e field for the mapped file may be updated at any time between the mmmmaapp() and the
+       corresponding unmapping; the first reference to a mapped page will update the field if it has not been already.
+
+       The  _s_t___c_t_i_m_e and _s_t___m_t_i_m_e field for a file mapped with PPRROOTT__WWRRIITTEE and MMAAPP__SSHHAARREEDD will be updated after a write to the
+       mapped region, and before a subsequent mmssyynncc(2) with the MMSS__SSYYNNCC or MMSS__AASSYYNNCC flag, if one occurs.
+
+   HHuuggee ppaaggee ((HHuuggee TTLLBB)) mmaappppiinnggss
+       For mappings that employ huge pages, the requirements for the arguments of mmmmaapp() and mmuunnmmaapp()  differ  somewhat  from
+       the requirements for mappings that use the native system page size.
+
+       For  mmmmaapp(), _o_f_f_s_e_t must be a multiple of the underlying huge page size.  The system automatically aligns _l_e_n_g_t_h to be
+       a multiple of the underlying huge page size.
+
+       For mmuunnmmaapp(), _a_d_d_r and _l_e_n_g_t_h must both be a multiple of the underlying huge page size.
+
+   CC lliibbrraarryy//kkeerrnneell ddiiffffeerreenncceess
+       This page describes the interface provided by the glibc mmmmaapp() wrapper function.  Originally, this function invoked  a
+       system  call  of  the same name.  Since kernel 2.4, that system call has been superseded by mmmmaapp22(2), and nowadays the
+       glibc mmmmaapp() wrapper function invokes mmmmaapp22(2) with a suitably adjusted value for _o_f_f_s_e_t.
+
+BBUUGGSS
+       On Linux, there are no guarantees like those suggested above under MMAAPP__NNOORREESSEERRVVEE.  By  default,  any  process  can  be
+       killed at any moment when the system runs out of memory.
+
+       In kernels before 2.6.7, the MMAAPP__PPOOPPUULLAATTEE flag has effect only if _p_r_o_t is specified as PPRROOTT__NNOONNEE.
+
+       SUSv3  specifies  that mmmmaapp() should fail if _l_e_n_g_t_h is 0.  However, in kernels before 2.6.12, mmmmaapp() succeeded in this
+       case: no mapping was created and the call returned _a_d_d_r.  Since kernel 2.6.12, mmmmaapp() fails with the error EEIINNVVAALL  for
+       this case.
+
+       POSIX  specifies that the system shall always zero fill any partial page at the end of the object and that system will
+       never write any modification of the object beyond its end.  On Linux, when you write data to such partial  page  after
+       the end of the object, the data stays in the page cache even after the file is closed and unmapped and even though the
+       data is never written to the file itself, subsequent mappings may see the modified content.  In some cases, this could
+       be  fixed  by calling mmssyynncc(2) before the unmap takes place; however, this doesn't work on ttmmppffss(5) (for example, when
+       using the POSIX shared memory interface documented in sshhmm__oovveerrvviieeww(7)).
+
+EEXXAAMMPPLLEE
+       The following program prints part of the file specified in its first command-line argument to  standard  output.   The
+       range of bytes to be printed is specified via offset and length values in the second and third command-line arguments.
+       The program creates a memory mapping of the required pages of the file and then uses wwrriittee(2) to  output  the  desired
+       bytes.
+
+   PPrrooggrraamm ssoouurrccee
+       #include <sys/mman.h>
+       #include <sys/stat.h>
+       #include <fcntl.h>
+       #include <stdio.h>
+       #include <stdlib.h>
+       #include <unistd.h>
+
+       #define handle_error(msg) \
+           do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+       int
+       main(int argc, char *argv[])
+       {
+           char *addr;
+           int fd;
+           struct stat sb;
+           off_t offset, pa_offset;
+           size_t length;
+           ssize_t s;
+
+           if (argc < 3 || argc > 4) {
+               fprintf(stderr, "%s file offset [length]\n", argv[0]);
+               exit(EXIT_FAILURE);
+           }
+
+           fd = open(argv[1], O_RDONLY);
+           if (fd == -1)
+               handle_error("open");
+
+           if (fstat(fd, &sb) == -1)           /* To obtain file size */
+               handle_error("fstat");
+
+           offset = atoi(argv[2]);
+           pa_offset = offset & ~(sysconf(_SC_PAGE_SIZE) - 1);
+               /* offset for mmap() must be page aligned */
+
+           if (offset >= sb.st_size) {
+               fprintf(stderr, "offset is past end of file\n");
+               exit(EXIT_FAILURE);
+           }
+
+           if (argc == 4) {
+               length = atoi(argv[3]);
+               if (offset + length > sb.st_size)
+                   length = sb.st_size - offset;
+                       /* Can't display bytes past end of file */
+
+           } else {    /* No length arg ==> display to end of file */
+               length = sb.st_size - offset;
+           }
+
+           addr = mmap(NULL, length + offset - pa_offset, PROT_READ,
+                       MAP_PRIVATE, fd, pa_offset);
+           if (addr == MAP_FAILED)
+               handle_error("mmap");
+
+           s = write(STDOUT_FILENO, addr + offset - pa_offset, length);
+           if (s != length) {
+               if (s == -1)
+                   handle_error("write");
+
+               fprintf(stderr, "partial write");
+               exit(EXIT_FAILURE);
+           }
+
+           munmap(addr, length + offset - pa_offset);
+           close(fd);
+
+           exit(EXIT_SUCCESS);
+       }
+
+SSEEEE AALLSSOO
+       ffttrruunnccaattee(2),  ggeettppaaggeessiizzee(2),  mmeemmffdd__ccrreeaattee(2),  mmiinnccoorree(2),  mmlloocckk(2),  mmmmaapp22(2),  mmpprrootteecctt(2), mmrreemmaapp(2), mmssyynncc(2),
+       rreemmaapp__ffiillee__ppaaggeess(2), sseettrrlliimmiitt(2), sshhmmaatt(2), uusseerrffaauullttffdd(2), sshhmm__ooppeenn(3), sshhmm__oovveerrvviieeww(7)
+
+       The descriptions of the following files in pprroocc(5): _/_p_r_o_c_/_[_p_i_d_]_/_m_a_p_s, _/_p_r_o_c_/_[_p_i_d_]_/_m_a_p___f_i_l_e_s, and _/_p_r_o_c_/_[_p_i_d_]_/_s_m_a_p_s.
+
+       B.O. Gallmeister, POSIX.4, O'Reilly, pp. 128–129 and 389–391.
+
+CCOOLLOOPPHHOONN
+       This page is part of release 5.05 of the Linux _m_a_n_-_p_a_g_e_s project.  A description of the project, information about re‐
+       porting bugs, and the latest version of this page, can be found at https://www.kernel.org/doc/man-pages/.
+
+Linux                                                     2019-10-10                                                  MMAP(2)

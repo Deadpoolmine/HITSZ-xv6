@@ -483,3 +483,194 @@ sys_pipe(void)
   return 0;
 }
 
+
+
+/** 
+ On success, mmap() returns a pointer to the mapped area.  
+ On error, the value MAP_FAILED (that is, (void *) -1) is re‐
+ turned, and errno is set to indicate the cause of the error.
+
+ On success, munmap() returns 0.  
+ On failure, it returns -1, and errno is set to indicate the cause of the error (prob‐
+ ably to EINVAL).
+ 
+ */
+/**
+ * 
+ * void *mmap(void *addr, size_t length, int prot, int flags,
+ *                 int fd, off_t offset);
+ */
+/**
+ * 思路参考自：
+ * https://xiayingp.gitbook.io/build_a_os/labs/untitled#define-vma-virtual-memory-area-per-process
+ * 
+ * 如何 find an unused region in the process's address space in which to map the file,？
+ * xv6 book Figure 3.4 给出： A process’s user address space, with its initial stack.
+ * 
+ * 因此，在mmap中，我们试图从上往下分配地址。
+ * 
+ * 为了实现：
+ * 1. 在proc中添加一个vma管理器
+ * 2. 在proc中添加一个当前最大虚拟地址
+ * 3. 在proc中记录当前最大虚拟地址属于哪一个vma
+ */
+uint64
+sys_mmap(void){
+  uint64 addr;
+  int length;
+  int prot;
+  int flags;
+  int fd;
+  struct file* f;
+  int offset;
+  
+  if(argaddr(0, &addr) < 0 || argint(1, &length) < 0 || 
+     argint(2, &prot) < 0 || argint(3, &flags) < 0 || 
+     argfd(4, &fd, &f) < 0 || argint(5, &offset) < 0){
+    return -1;
+  }
+
+  if(!f->writable && (prot & PROT_WRITE) && (flags & MAP_SHARED)){
+    return -1;
+  }
+  /**
+   * 
+   * you can assume that addr will always be zero, 
+   * meaning that the kernel should decide the virtual address at which to map the file
+   * 
+   * offset it's the starting point in the file at which to map
+   */
+  struct proc* p;
+  p = myproc();
+  
+  struct VMA* vma = 0;
+  /** 从上往下找到第一个可用的vma  */
+  for (int i = NVMA - 1; i >= 0; i--)
+  {
+    if(p->vmas[i].vm_valid){
+      vma = &p->vmas[i];
+      /** 置当前的imaxvma为i  */
+      p->current_imaxvma = i;
+      break;
+    }
+  }
+  /**
+   * 1. VMA：START在下方
+   * 原因：kalloc是分配内存向上增长，因此start要在下方
+   * ->current_maxva     0x001xx END
+   *                     ............
+   *                     0x000xx START
+   * 
+   * ----------------------------------
+   * 2. 更新current_maxva
+   *                     0x001xx END
+   *                     ............
+   * ->current_maxva     0x000xx START
+   * ----------------------------------
+   */
+  if(vma){
+    /** 记得这里要用uint64，否则会做最高位拓展  */
+    printf("sys_mmap(): %p, length: %d\n",p->current_maxva, length);
+    uint64 vm_end = PGROUNDDOWN(p->current_maxva);
+    uint64 vm_start = PGROUNDDOWN(p->current_maxva - length);
+    printf("vm_start(): %p, vm_end: %p\n",vm_start, vm_end);
+    vma->vm_valid = 0;
+    vma->vm_fd = fd;
+    vma->vm_file = f;
+    vma->vm_flags = flags;
+    vma->vm_prot = prot;
+    vma->vm_end = vm_end;
+    vma->vm_start = vm_start;
+    /**
+     * mmap should increase the file's reference count 
+     * so that the structure doesn't disappear when the file is closed (hint: see filedup).
+     */
+    vma->vm_file->ref++;
+    p->current_maxva = vm_start;
+  }
+  else
+  {
+    return -1;
+  }  
+  return vma->vm_start;
+}
+
+/**
+ * int munmap(void *addr, size_t length);
+ * 
+ * 
+ * An munmap call might cover only a portion of an mmap-ed region, but you can assume that 
+ * it will either unmap at the start, 
+ * or at the end, or the whole region (but not punch a hole in the middle of a region).
+ */
+uint64
+sys_munmap(void){
+  uint64 addr;
+  int length;
+  if(argaddr(0, &addr) < 0 || argint(1, &length) < 0){
+    return -1;
+  }
+  printf("### sys_munmap: \n");
+  printf("addr: %p, length:%d, current:%p\n", addr, length, myproc()->current_maxva);
+  struct proc* p = myproc();
+  for (int i = NVMA - 1; i >= 0; i--)
+  {
+    if(p->vmas[i].vm_start <= addr && addr <= p->vmas[i].vm_end){
+      struct VMA* vma = &p->vmas[i];
+      /** 
+       * 1. If an unmapped page has been modified and the file is mapped MAP_SHARED, 
+       * write the page back to the file. Look at filewrite for inspiration.  
+       * 
+       * 
+       * 2. However, mmaptest does not check that non-dirty pages are not written back; 
+       * thus you can get away with writing pages back without looking at D bits.
+       * 
+       * 
+       * 1. unmap的时候，只会从一个vma的起始开始，因此，可以默认p->vmas[i].vm_start = addr，因此
+       *    我们后面有一个vma->vm_start += length操作。
+       * 2. 就是说，碰到MAP_SHARED就回写，不用理会“写脏D位”
+       * 
+       * 3. 指针current_maxva基于current_imaxvma紧缩，这样是一个折中的办法，而不是一直向下增长
+       * 
+       * */
+      /** 首先要判断  */
+      if(walkaddr(p->pagetable, vma->vm_start)){
+        if(vma->vm_flags == MAP_SHARED){
+          printf("sys_munmap(): write back \n");
+          /** 回写文件  */
+          filewrite(vma->vm_file, vma->vm_start, length);
+        }
+        uvmunmap(p->pagetable, vma->vm_start, length ,1);
+      }
+
+      vma->vm_start += length;
+      printf("vma_start: %p, vma_end: %p\n", vma->vm_start, vma->vm_end);
+      if(vma->vm_start == vma->vm_end){
+        vma->vm_file->ref--;
+        /** 置该块可用  */
+        vma->vm_valid = 1;
+      }
+
+      /** Shrink  */
+      int j;
+      /** 紧缩 p->current_maxva */
+      for (j = p->current_imaxvma; j < NVMA; j++)
+      {
+        if(!p->vmas[j].vm_valid){
+          p->current_maxva = p->vmas[j].vm_start;
+          p->current_imaxvma = j;
+          break;
+        }
+      }
+      if(j == NVMA){
+        p->current_maxva = VMASTART;
+      }
+      return 0;
+    }
+  }
+  
+  printf("################ arrive at munmap!\n");
+  return -1;
+}
+
+

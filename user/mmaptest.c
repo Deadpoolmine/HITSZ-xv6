@@ -129,11 +129,13 @@ mmap_test(void)
   if (munmap(p, PGSIZE*2) == -1)
     err("munmap (2)");
 
+  printf("### success here !\n");
   // check that mmap doesn't allow read/write mapping of a
   // file opened read-only.
   if ((fd = open(f, O_RDONLY)) == -1)
     err("open");
   p = mmap(0, PGSIZE*3, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  printf("p: %p\n", p);
   if (p != MAP_FAILED)
     err("mmap call should have failed");
   if (close(fd) == -1)
@@ -203,6 +205,9 @@ mmap_test(void)
   close(fd2);
   unlink("mmap2");
 
+  //printf("######## p1: %s, len: %d\n", p1, strlen(p1));
+  //printf("######## p2: %s\n", p2);
+  
   if(memcmp(p1, "12345", 5) != 0)
     err("mmap1 mismatch");
   if(memcmp(p2, "67890", 5) != 0)
