@@ -18,6 +18,17 @@ static int nsizes;     // the number of entries in bd_sizes array
 
 typedef struct list Bd_list;
 
+/**
+ * 
+ * 
+ * 关键在于思考为何要记录bit？？？
+ * 用在什么地方？？
+ * 1. bd_initfree_pair，判断左右边界的buddy pair
+ * 2. bd_free，用于判断buddy是否是空
+ */
+
+
+
 // The allocator has sz_info for each size k. Each sz_info has a free
 // list, an array alloc to keep track which blocks have been
 // allocated, and an split array to to keep track which blocks have
@@ -195,6 +206,7 @@ size(char *p) {
 
 // Free memory pointed to by p, which was earlier allocated using
 // bd_malloc.
+/** 此时说明了位于p的块是被占满了  */
 void
 bd_free(void *p) {
   void *q;
@@ -211,6 +223,8 @@ bd_free(void *p) {
     /** 
      *  Change
      *  bit_isset(bd_sizes[k].alloc, buddy) */
+
+    /** 如果是1，说明buddy有了，否则没有  */
     if (mutual_bit_get(bd_sizes[k].alloc, bi)) {  // is buddy allocated?
       break;   // break out of loop
     }
