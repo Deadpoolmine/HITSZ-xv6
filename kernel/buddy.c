@@ -307,7 +307,7 @@ bd_init(void *base, void *end) {
   }
 
   printf("bd: memory sz is %d bytes; allocate an size array of length %d\n",
-         (char*) end - p, nsizes);
+         (char*) end - p, nsizes);  //24
 
   // allocate bd_sizes array
   bd_sizes = (Sz_info *) p;
@@ -319,6 +319,7 @@ bd_init(void *base, void *end) {
     lst_init(&bd_sizes[k].free);
     sz = sizeof(char)* ROUNDUP(NBLK(k), 8)/8;
     bd_sizes[k].alloc = p;
+    printf("sz:%d\n", sz);
     memset(bd_sizes[k].alloc, 0, sz);
     p += sz;
   }
