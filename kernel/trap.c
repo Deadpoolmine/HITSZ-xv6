@@ -80,8 +80,8 @@ usertrap(void)
     // printf("got tick intr\n");
     // printf("num:%d\n",p->tf->a7);
     p->tickpassed++;
-    if(p->ticks != -1 || p->ticks != 0){
-      if(p->tickpassed % p->ticks == 0){
+    if(p->ticks != 0){
+      if(p->tickpassed == p->ticks){
         //printf("hh\n");
         //printf("handler: %p\n",p->handler);
         /** 
@@ -95,7 +95,6 @@ usertrap(void)
          * */
         memmove(&p->savedtf, p->tf, sizeof(struct trapframe));
         p->tf->epc = (uint64)p->handler;
-        p->tickpassed = 0;
       }
     }
     yield();

@@ -524,7 +524,6 @@ uint64
 sys_sigreturn(void){
   struct proc *p = myproc();
   p->tickpassed = 0;
-  p->ticks = -1;
   memmove(p->tf, &p->savedtf, sizeof(struct trapframe));
   // printf("call return;\n");
   return 0;
