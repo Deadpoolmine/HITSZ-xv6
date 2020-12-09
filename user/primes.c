@@ -1,4 +1,4 @@
-#include <sys/types.h> 
+#include "kernel/types.h"
 #include "user.h"
 
 
@@ -14,7 +14,7 @@ main(int argc, char** argv){
     //创建管道
     pipe(pd);
     //check_pd(pd, 2);
-    pid_t pid;
+    int pid;
 
     //Child Process
     if((pid = fork()) == 0){
@@ -36,7 +36,7 @@ void process(int pd[]){
     int p;
     int n;
     int len;
-    pid_t pid;
+    int pid;
     int pd_child[2];
     int infos[34];
     int infos_i = 0;
@@ -101,10 +101,3 @@ send_primes(int pd[], int infos[], int infoslen){
     }
 }
 
-// void 
-// redirect(int k, int pd[]) {
-//   close(k);
-//   dup(pd[k]);
-//   close(pd[0]);
-//   close(pd[1]);
-// }

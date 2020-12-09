@@ -1,6 +1,5 @@
 #include "kernel/types.h"
 #include "kernel/stat.h"
-#include <sys/types.h> 
 #include "user.h"
 #include "kernel/fs.h"
 #include "kernel/param.h"
@@ -14,7 +13,7 @@ void printargs(char* args[MAXARG][CMDSTYLE], int args_num);
 /* 打印参数 */
 void 
 printargs(char* args[MAXARG][CMDSTYLE], int args_num){
-    for (size_t i = 0; i < args_num; i++)
+    for (int i = 0; i < args_num; i++)
     {
         /* code */
         printf("--------------args %d:--------------\n", i + 1);
@@ -54,7 +53,7 @@ int
 main(int argc, char *argv[])
 {
     /* code */
-    pid_t pid;
+    int pid;
     char buf[MAXPATH];
     char *args[MAXARG][CMDSTYLE];
     char *cmd;
@@ -102,7 +101,7 @@ main(int argc, char *argv[])
         printf("xargs: too many initial args, only 2 permitted! \n");
         exit();
     }
-    for (size_t i = 0; i < args_num; i++)
+    for (int i = 0; i < args_num; i++)
     {
         /* code */
         argv2exec[i + argstartpos] = args[i][1];

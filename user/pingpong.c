@@ -1,13 +1,9 @@
-#include <stdio.h> 
-#include <sys/types.h> 
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "kernel/types.h"
+#include "user/user.h"
 
 int 
 main(int argc, char** argv ){
-    pid_t pid;
+    int pid;
     int parent_fd[2];
     int child_fd[2];
     char buf[20];
@@ -22,7 +18,7 @@ main(int argc, char** argv ){
         printf("%d: received %s\n",getpid(), buf);
         close(child_fd[0]);
         write(child_fd[1], "pong", sizeof(buf));
-        exit(0);
+        exit();
     }
     // Parent Progress
     else{
@@ -31,7 +27,7 @@ main(int argc, char** argv ){
         close(child_fd[1]);
         read(child_fd[0], buf, sizeof(buf));
         printf("%d: received %s\n", getpid(), buf);
-        exit(0);
+        exit();
     }
     
 }

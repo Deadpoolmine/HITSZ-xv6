@@ -1,7 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "kernel/types.h"
+#include "user/user.h"
 
 const int duration_pos = 1;
 typedef enum {wrong_char, success_parse, toomany_char} cmd_parse;
@@ -12,24 +10,24 @@ main(int argc, char** argv){
     //printf("%d, %s, %s \n",argc, argv[0], argv[1]);
     if(argc == 1){
         printf("Please enter the parameters!");
-        exit(0);
+        exit();
     }
     else{
         cmd_parse parse_result;
         parse_result = parse_cmd(argc, argv);
         if(parse_result == toomany_char){
             printf("Too many args! \n");
-            exit(0);
+            exit();
         }
         else if(parse_result == wrong_char){
             printf("Cannot input alphabet, number only \n");
-            exit(0);
+            exit();
         }
         else{
             int duration = atoi(argv[duration_pos]);
             //printf("Sleeping %f", duration / 10.0);
             sleep(duration);
-            exit(0);
+            exit();
         }
         
     }
