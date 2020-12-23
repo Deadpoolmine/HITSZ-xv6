@@ -31,16 +31,6 @@ fetchstr(uint64 addr, char *buf, int max)
   return strlen(buf);
 }
 
-/**
- * 
- * The C calling convention on RISC-V specifies that arguments are passed in registers. During
- * a system call, these registers (the saved user registers) are available in the 
- * trapframe, p->tf.
- * The functions argint, argaddr, and argfd retrieve the 
- * n ’th system call argument, as either an
- * integer, pointer, or a file descriptor. 
- * They all call argraw to retrieve one of the saved user registers
- */
 static uint64
 argraw(int n)
 {
@@ -116,14 +106,10 @@ extern uint64 sys_write(void);
 extern uint64 sys_uptime(void);
 extern uint64 sys_ntas(void);
 extern uint64 sys_crash(void);
-/** AlarmTest  */
+/** Alarm */
 extern uint64 sys_sigalarm(void);
 extern uint64 sys_sigreturn(void);
 
-/**
- *  System call numbers match the entries in the syscalls array, a table of function
- *  pointers 
- * */ 
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -148,14 +134,11 @@ static uint64 (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_ntas]    sys_ntas,
 [SYS_crash]   sys_crash,
-/** AlarmTest */
+/** Alarm */
 [SYS_sigalarm] sys_sigalarm,
 [SYS_sigreturn] sys_sigreturn
 };
 
-/**
- * System Call, p->tf->a0返回值
- */
 void
 syscall(void)
 {
@@ -165,7 +148,6 @@ syscall(void)
   num = p->tf->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     p->tf->a0 = syscalls[num]();
-    // printf("num: %d, p->tf-a0:%d\n",num, p->tf->a0);
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
