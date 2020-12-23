@@ -128,7 +128,7 @@ usertrap(void)
         p->killed = 1;
         goto end;
       }
-      /** 利用readi将文件内容映射到虚拟地址上，映射的开始地址偏移为 va - vma->vm_start  */
+      /** 利用readi将文件内容映射到虚拟地址上，映射的文件开始地址偏移为 va - vma->vm_start  */
       struct file* f = vma->vm_file;
       int offset = va - vma->vm_start;
 
