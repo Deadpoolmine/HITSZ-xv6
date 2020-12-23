@@ -275,6 +275,7 @@ fork(void)
 
   /** Modify fork to ensure that the child has the same mapped regions as the parent.  */
   np->current_maxva = p->current_maxva;
+  np->current_imaxvma = p->current_imaxvma;
   for (int i = NVMA - 1; i >= 0; i--)
   {
     if(p->vmas[i].vm_file)
